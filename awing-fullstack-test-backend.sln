@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.35122.118
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "awing-fullstack-test-backend", "awing-fullstack-test-backend.csproj", "{CDC0735A-E4A7-498C-8576-A2589E9BF9DC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CDC0735A-E4A7-498C-8576-A2589E9BF9DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CDC0735A-E4A7-498C-8576-A2589E9BF9DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CDC0735A-E4A7-498C-8576-A2589E9BF9DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CDC0735A-E4A7-498C-8576-A2589E9BF9DC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {74D1FE5D-6A37-4325-904E-6DC1EF9868D9}
+	EndGlobalSection
+EndGlobal
