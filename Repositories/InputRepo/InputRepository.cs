@@ -3,10 +3,12 @@ namespace awing_fullstack_test_backend.Repositories.InputRepo
     public class InputRepository : IInputRepository
     {
         private readonly DataContext _dataContext;
+
         public InputRepository(DataContext dataContext)
         {
             _dataContext = dataContext;
         }
+
         public async Task<ServiceResponse<List<Input>>> GetAll()
         {
             var serviceResponse = new ServiceResponse<List<Input>>();
@@ -27,101 +29,211 @@ namespace awing_fullstack_test_backend.Repositories.InputRepo
 
             return serviceResponse;
         }
-        public async Task<ServiceResponse<Output>> FindResult(FindResultRequestDto request)
+
+        public async Task<ServiceResponse<CreateOutputDto>> FindResult(FindResultRequestDto request)
         {
-            var input = request.MatrixElements;
-            var n = request.N;
-            var m = request.M;
-            var p = request.P;
+            var serviceResponse = new ServiceResponse<CreateOutputDto>();
 
-            // Khởi tạo ma trận kho báu và các thông tin cần thiết
-            var treasureMap = new int[n, m];
-            foreach (var element in input)
+            try
             {
-                treasureMap[element.Row, element.Column] = element.Value;
-            }
+                // Tạo bản đồ kho báu từ request
+                var treasureMap = new TreasureMap(request.N, request.M, request.P, request.MatrixElements);
+                double minimumFuel = FindMinimumFuel(treasureMap);
 
-            var startX = 0; // Chỉ số hàng bắt đầu (0-based index)
-            var startY = 0; // Chỉ số cột bắt đầu (0-based index)
-            var treasureX = -1; // Vị trí kho báu (0-based index)
-            var treasureY = -1; // Vị trí kho báu (0-based index)
-
-            // Tìm tọa độ của kho báu
-            for (int i = 0; i < n; i++)
-            {
-                for (int j = 0; j < m; j++)
+                // Tạo đối tượng Input và lưu vào cơ sở dữ liệu
+                var input = new Input
                 {
-                    if (treasureMap[i, j] == p)
+                    Rows = request.N,
+                    Columns = request.M,
+                    Treasure = request.P,
+                    MatrixElements = request.MatrixElements.Select(me => new MatrixElement
                     {
-                        treasureX = i;
-                        treasureY = j;
-                        break;
-                    }
-                }
-                if (treasureX != -1) break;
-            }
-
-            // Nếu không tìm thấy kho báu, trả về giá trị mặc định hoặc thông báo lỗi
-            if (treasureX == -1)
-            {
-                return new ServiceResponse<Output>
-                {
-                    Success = false,
-                    Message = "Không tìm thấy kho báu trong map."
+                        Row = me.Row,
+                        Column = me.Column,
+                        Value = me.Value
+                    }).ToList()
                 };
+
+                _dataContext.Inputs.Add(input);
+                await _dataContext.SaveChangesAsync();
+
+                // Tạo đối tượng Output để lưu kết quả
+                var output = new Output
+                {
+                    Result = minimumFuel,
+                    InputId = input.Id
+                };
+
+                _dataContext.Outputs.Add(output);
+                await _dataContext.SaveChangesAsync();
+
+                // Chuyển đổi Output thành OutputDto
+                var outputDto = new CreateOutputDto
+                {
+                    Result = output.Result,
+                    InputId = output.InputId
+                };
+
+                serviceResponse.Data = outputDto;
+                serviceResponse.Message = "Success";
+            }
+            catch (Exception ex)
+            {
+                serviceResponse.Success = false;
+                serviceResponse.Message = $"Có lỗi xảy ra khi tính toán kết quả: {ex.Message}";
             }
 
-            // Khởi tạo bảng lưu trữ chi phí và queue
-            var fuelCost = new double[n, m];
-            var visited = new bool[n, m];
-            var pq = new PriorityQueue<(int, int), double>();
+            return serviceResponse;
+        }
 
-            // Khởi tạo bảng fuelCost và đưa điểm bắt đầu vào queue
-            for (int i = 0; i < n; i++)
+        private double FindMinimumFuel(TreasureMap treasureMap)
+        {
+            var start = treasureMap.GetChest(1);
+            var target = treasureMap.GetChest(treasureMap.MaxChestNumber);
+
+            if (start == null || target == null)
+                throw new InvalidOperationException("Start or target chest not found.");
+
+            var allPaths = FindAllPathsDFS(start, target, treasureMap);
+
+            double minFuel = double.MaxValue;
+
+            foreach (var path in allPaths)
             {
-                for (int j = 0; j < m; j++)
+                double fuel = CalculateFuel(path);
+                Console.WriteLine($"Path with fuel: {fuel}");
+                if (fuel < minFuel)
                 {
-                    fuelCost[i, j] = double.MaxValue;
+                    minFuel = fuel;
                 }
             }
-            fuelCost[startX, startY] = 0;
-            pq.Enqueue((startX, startY), 0);
 
-            // Các hướng di chuyển: lên, xuống, trái, phải
-            var directions = new (int, int)[] { (1, 0), (-1, 0), (0, 1), (0, -1) };
-
-            while (pq.Count > 0)
+            if (minFuel == double.MaxValue)
             {
-                var (x, y) = pq.Dequeue();
+                Console.WriteLine("No valid path found.");
+            }
+            else
+            {
+                Console.WriteLine($"Minimum fuel required: {minFuel}");
+            }
 
-                if (visited[x, y]) continue;
-                visited[x, y] = true;
+            return minFuel == double.MaxValue ? 0 : minFuel * 2; // Nhân đôi vì cần tính cả đường về
+        }
 
-                foreach (var (dx, dy) in directions)
+        private List<List<Island>> FindAllPathsDFS(Island start, Island target, TreasureMap treasureMap)
+        {
+            var allPaths = new List<List<Island>>();
+            var path = new List<Island>();
+            var visited = new HashSet<Island>();
+
+            void DFS(Island current, List<Island> currentPath, HashSet<Island> visitedSet)
+            {
+                if (current == null) return;
+
+                currentPath.Add(current);
+                visitedSet.Add(current);
+
+                if (current == target)
                 {
-                    var nx = x + dx;
-                    var ny = y + dy;
-
-                    if (nx >= 0 && nx < n && ny >= 0 && ny < m)
+                    allPaths.Add(new List<Island>(currentPath));
+                }
+                else
+                {
+                    foreach (var neighbor in GetNeighbors(current, treasureMap))
                     {
-                        var newCost = fuelCost[x, y] + Math.Sqrt(Math.Pow(x - nx, 2) + Math.Pow(y - ny, 2));
-
-                        if (newCost < fuelCost[nx, ny])
+                        if (!visitedSet.Contains(neighbor) && IsValidMove(current, neighbor))
                         {
-                            fuelCost[nx, ny] = newCost;
-                            pq.Enqueue((nx, ny), newCost);
+                            DFS(neighbor, currentPath, visitedSet);
                         }
                     }
                 }
+
+                // Backtrack
+                currentPath.RemoveAt(currentPath.Count - 1);
+                visitedSet.Remove(current);
             }
 
-            return new ServiceResponse<Output>
+            DFS(start, path, visited);
+
+            return allPaths;
+        }
+
+        private IEnumerable<Island> GetNeighbors(Island island, TreasureMap treasureMap)
+        {
+            var directions = new (int dx, int dy)[]
             {
-                Data = new Output
-                {
-                    Result = fuelCost[treasureX, treasureY]
-                }
+                       (-1, 0), (1, 0), (0, -1), (0, 1)
             };
-        }                   
+
+            foreach (var (dx, dy) in directions)
+            {
+                int newX = island.X + dx;
+                int newY = island.Y + dy;
+
+                if (newX >= 0 && newX < treasureMap.Rows && newY >= 0 && newY < treasureMap.Columns)
+                {
+                    yield return treasureMap.Map[newX, newY];
+                }
+            }
+        }
+
+        private bool IsValidMove(Island current, Island neighbor)
+        {
+            return neighbor.ChestNumber == current.ChestNumber + 1 || neighbor.ChestNumber == current.ChestNumber - 1;
+        }
+
+        private double CalculateFuel(List<Island> path)
+        {
+            double totalFuel = 0;
+
+            for (int i = 0; i < path.Count - 1; i++)
+            {
+                var current = path[i];
+                var next = path[i + 1];
+                totalFuel += Math.Sqrt(Math.Pow(current.X - next.X, 2) + Math.Pow(current.Y - next.Y, 2));
+            }
+
+            return totalFuel;
+        }
+    }
+
+    public class TreasureMap
+    {
+        public int Rows { get; set; }
+        public int Columns { get; set; }
+        public int MaxChestNumber { get; set; }
+        public Island[,] Map { get; set; }
+
+        public TreasureMap(int rows, int columns, int maxChestNumber, List<MatrixElementDto> matrixElements)
+        {
+            Rows = rows;
+            Columns = columns;
+            MaxChestNumber = maxChestNumber;
+            Map = new Island[rows, columns];
+
+            foreach (var element in matrixElements)
+            {
+                Map[element.Row, element.Column] = new Island { X = element.Row, Y = element.Column, ChestNumber = element.Value };
+            }
+        }
+
+        public Island GetChest(int chestNumber)
+        {
+            foreach (var island in Map)
+            {
+                if (island.ChestNumber == chestNumber)
+                {
+                    return island;
+                }
+            }
+            return null;
+        }
+    }
+
+    public class Island
+    {
+        public int X { get; set; }
+        public int Y { get; set; }
+        public int ChestNumber { get; set; }
     }
 }
