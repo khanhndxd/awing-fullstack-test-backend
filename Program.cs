@@ -1,5 +1,6 @@
 global using awing_fullstack_test_backend.Models;
 global using awing_fullstack_test_backend.Data;
+global using awing_fullstack_test_backend.DTO;
 global using Microsoft.EntityFrameworkCore;
 using awing_fullstack_test_backend.Repositories.InputRepo;
 

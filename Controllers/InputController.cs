@@ -23,9 +23,16 @@ namespace awing_fullstack_test_backend.Controllers
             }
             return Ok(result);
         }
-        public async Task<ActionResult<ServiceResponse<Output>>> FindResult()
+        [HttpPost("FindResult")]
+        public async Task<ActionResult<ServiceResponse<Output>>> FindResult([FromBody] FindResultRequestDto request)
         {
-            var result = await _inputRepository.FindResult();
+            var result = await _inputRepository.FindResult(request);
+
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+
             return Ok(result);
         }
     }
