@@ -23,12 +23,22 @@ namespace awing_fullstack_test_backend.Controllers
             }
             return Ok(result);
         }
+        [HttpGet("{id}")]
+        public async Task<ActionResult<ServiceResponse<Input>>> GetById(int id)
+        {
+            var result = await _inputRepository.GetInputById(id);
+            if (result.Success == false)
+            {
+                return NotFound(result);
+            }
+            return Ok(result);
+        }
         [HttpPost("FindResult")]
         public async Task<ActionResult<ServiceResponse<CreateOutputDto>>> FindResult([FromBody] FindResultRequestDto request)
         {
             var result = await _inputRepository.FindResult(request);
 
-            if (!result.Success)
+            if (result.Success == false)
             {
                 return BadRequest(result);
             }

@@ -9,5 +9,6 @@ namespace awing_fullstack_test_backend.Models
         [ForeignKey(nameof(InputId))]
         public Input Input { get; set; }
         public double Result { get; set; }
+        public string PathInfo { get; set; }
     }
 }

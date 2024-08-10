@@ -1,4 +1,4 @@
-﻿namespace awing_fullstack_test_backend.DTO
+namespace awing_fullstack_test_backend.DTO
 {
     public class FindResultRequestDto
     {
