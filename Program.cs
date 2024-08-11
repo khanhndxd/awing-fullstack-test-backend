@@ -13,6 +13,18 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Thêm CORS để gọi api từ client không bị chặn
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAllOrigins",
+            builder =>
+            {
+                builder.AllowAnyOrigin()
+                       .AllowAnyMethod()
+                       .AllowAnyHeader();
+            });
+});
+
 // Dùng in-memory database để test cho nhanh, không cần kết nối
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseInMemoryDatabase(builder.Configuration.GetConnectionString("InMemoryDb"))
@@ -21,6 +33,9 @@ builder.Services.AddDbContext<DataContext>(options =>
 builder.Services.AddScoped<IInputRepository, InputRepository>();
 
 var app = builder.Build();
+
+// Dùng service cors vừa tạo ở trên
+app.UseCors("AllowAllOrigins");
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

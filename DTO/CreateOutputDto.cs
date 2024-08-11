@@ -1,5 +1,8 @@
-public class CreateOutputDto
+namespace awing_fullstack_test_backend.DTO
 {
-    public double Result { get; set; }
-    public int InputId { get; set; }
+    public class CreateOutputDto
+    {
+        public double Result { get; set; }
+        public int InputId { get; set; }
+    }
 }
